@@ -75,7 +75,7 @@ function lancerSequentiel( imageFile ) {
                         regionNumber++;
                     }
                 }
-                alert("Mesure moyenne des grain : " +  ((mesure / regionNumber) * parseFloat( document.getElementById('micron').value )) + "micron" );
+                alert("Mesure moyenne des grains : " +  ((mesure / regionNumber) * parseFloat( document.getElementById('micron').value )) + "micron" );
             }).catch(function ( e ) {
                 console.log( e );
             });
@@ -124,7 +124,7 @@ function lancerParallel( imageFile, nbr_process ) {
                         regionNumber++;
                     }
                 }
-                alert("Mesure moyenne des grain : " +  ((mesure / regionNumber) * parseFloat( document.getElementById('micron').value )) + "micron" );
+                alert("Mesure moyenne des grains : " +  ((mesure / regionNumber) * parseFloat( document.getElementById('micron').value )) + "micron" );
                 //console.log("Temps de calcul : " + (performance.now() - now) + "ms");
             }).catch(function ( error ) {
                 console.log( error );
