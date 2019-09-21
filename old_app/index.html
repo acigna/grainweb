@@ -1,0 +1,141 @@
+<!DOCTYPE HTML>
+<html>                                                            
+<body>
+<script type="text/javascript" src="q.js"></script>
+<script type="text/javascript" src="utils.js">
+</script>
+<script type="text/javascript" src="prog.js">    
+</script>
+<div>
+<canvas id="Canvas" style="text-align: center; height: 150px;">
+    Votre navigateur ne supporte pas canvas.
+</canvas>
+</div>
+<input type="file" id="image"/>
+
+<button id="lancer">Lancer Traitement</button>
+<label>Nombre de Thread :
+<select id="nbr_process">
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="4">4</option>
+    <option value="8">8</option>
+</select>
+</label>
+<label>Seuillage : <input type="text" id="seuil"  value ="140"/></label> 
+<label>1 px = <input type="text" id="micron" value="1" style="width: 50px;"> micron 
+</label>
+<script type="text/javascript">
+document.getElementById( 'image' ).addEventListener('change', function ( e ) {
+    var fichierSelectionne = document.getElementById( 'image' ).files[0];
+    var fileReader = new FileReader();
+    fileReader.onload = function ( e ) {
+        loadImage( e.target.result, function ( imageObj ) {
+            var imageData = getImageData(document.getElementById("Canvas"), imageObj);
+        });
+    };
+    fileReader.readAsDataURL( fichierSelectionne );
+});    
+</script>
+<script type="text/javascript">
+document.getElementById( 'lancer' ).addEventListener('click', function ( e ) {
+    var fichierSelectionne = document.getElementById( 'image' ).files[0],
+        nbr_process = parseInt( document.getElementById( 'nbr_process' ).value );
+
+    if( nbr_process === 1 ) {
+        lancerSequentiel( fichierSelectionne );
+    } else {
+        lancerParallel( fichierSelectionne, nbr_process );
+    }
+});
+</script>
+<script type="text/javascript">
+function lancerSequentiel( imageFile ) {
+    var fileReader = new FileReader();
+    fileReader.onload = function ( e ) {
+        loadImage( e.target.result, function ( imageObj ) {
+                //Récupérer l'image
+            var imageData = getImageData(document.getElementById("Canvas"), imageObj),
+                now = null;
+
+            lancerThread('seuillage_webworker.js', {imageData: imageData, seuil: parseInt(document.getElementById('seuil').value)}, [imageData.data.buffer]).then(function ( imageData ) {
+                now = performance.now();
+                putImageData(document.getElementById("Canvas"), imageData);
+
+                return lancerThread('croissance_webworker.js', {imageData: imageData, nbr_process: 1, offset: 0, pixel_offset: [0, 0]}, [imageData.data.buffer]);
+            }).then(function ( regions ) {
+                console.log("Temps de calcul : " + (performance.now() - now) + "ms");
+                var mesure = 0,
+                    regionNumber = 0,
+                    regionIds = regions[0];
+                for(var region_id in regionIds) {
+                    var region = regionIds[region_id];
+                    if( region.length > 100 ) {
+                        mesure += calculer_taille_grain( region );
+                        regionNumber++;
+                    }
+                }
+                alert("Mesure moyenne des grain : " +  ((mesure / regionNumber) * parseFloat( document.getElementById('micron').value )) + "micron" );
+            }).catch(function ( e ) {
+                console.log( e );
+            });
+            window.imageData = imageData;        
+        });
+    }
+    fileReader.readAsDataURL( imageFile );
+}
+
+function lancerParallel( imageFile, nbr_process ) {
+    var fileReader = new FileReader();
+    fileReader.onload = function ( e ) {
+        loadImage( e.target.result, function ( imageObj ) {
+                //Récupérer l'image
+            var imageData = getImageData(document.getElementById("Canvas"), imageObj);
+
+            lancerThread('seuillage_webworker.js', {imageData: imageData, seuil: parseInt(document.getElementById('seuil').value)}, [imageData.data.buffer]).then(function ( imageData ) {
+                now = performance.now();
+                putImageData(document.getElementById("Canvas"), imageData);
+
+                return lancerThread('split_webworker.js', {imageData: imageData, nombre_coupe: nbr_process}, [imageData.data.buffer]);
+            }).then(function ( splits ) {
+                var promises = [],
+                    pixel_offset = [0, 0];
+                for( var i = 0; i < splits.length; i++ ) {
+                    var split = splits[i];
+                    promises.push(lancerThread('croissance_webworker.js', {imageData: split, nbr_process: nbr_process, offset: i, pixel_offset: pixel_offset}, [split.data.buffer]));
+                    pixel_offset[1] += split.height;
+
+                }
+                return Q.all(promises);
+            }).then(function ( thread_regions ) {
+                console.log("Temps de calcul : " + (performance.now() - now) + "ms");
+                var arrayBuffers = [];
+                for( var i = 0; i < thread_regions.length; i++ ) {
+                    arrayBuffers.push( thread_regions[i][1].data.buffer );
+                }
+                return lancerThread('join_webworker.js', {thread_regions: thread_regions, nbr_process: nbr_process}, arrayBuffers);
+            }).then(function ( result ) {
+                var mesure = 0,
+                    regionNumber = 0;
+                for(var region_id in result) {
+                    var region = result[region_id];
+                    if( region.length > 100 ) {
+                        mesure += calculer_taille_grain( region );
+                        regionNumber++;
+                    }
+                }
+                alert("Mesure moyenne des grain : " +  ((mesure / regionNumber) * parseFloat( document.getElementById('micron').value )) + "micron" );
+                //console.log("Temps de calcul : " + (performance.now() - now) + "ms");
+            }).catch(function ( error ) {
+                console.log( error );
+            });
+
+            window.imageData = imageData;
+        });
+    }
+    fileReader.readAsDataURL( imageFile );
+}
+</script>
+
+</body>
+</html>
