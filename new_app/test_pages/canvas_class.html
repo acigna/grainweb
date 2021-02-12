@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<script type="text/javascript" src="../canvas_image.js"></script>
+</head>
+<body>
+<canvas id="canvas">
+	
+</canvas>
+<script type="text/javascript">
+	var canvasEl = document.getElementById('canvas'),
+	canvasImage = new CanvasImage( canvasEl );
+
+	var image =  new Image();
+	image.src = "ex.png";
+	image.onload = function () {
+		console.log('image loaded');
+		canvasImage.setWidth( image.width );
+		canvasImage.setHeight( image.height );
+		canvasImage.drawImage( image, 0, 0 );
+		console.log( image.width, "imagewidth" ); 
+
+	}
+</script>
+</body>
+</html>
