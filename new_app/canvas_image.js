@@ -22,5 +22,17 @@ CanvasImage.prototype = {
 
 	uploadImageData: function () {
 		this.context.putImageData( this.imageData, 0, 0 );
+	},
+
+	drawImage: function ( imageEl, x, y ) {
+		this.context.drawImage( imageEl, x,y );
+	},
+
+	setWidth: function ( width ) {
+		this.canvasElement.width = width;
+	},
+
+	setHeight: function ( height ) {
+		this.canvasElement.height = height;	
 	}
 }
