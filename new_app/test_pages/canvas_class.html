@@ -20,6 +20,10 @@
 		canvasImage.setHeight( image.height );
 		canvasImage.drawImage( image, 0, 0 );
 		console.log( image.width, "imagewidth" ); 
+		canvasImage.downloadImageData();
+		canvasImage.writePixel(0, 0, [255,0 ,0 , 255]);
+		canvasImage.writePixel(1, 0, [255,0 ,0 , 255]);
+		canvasImage.uploadImageData();
 
 	}
 </script>
