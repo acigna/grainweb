@@ -1,11 +1,12 @@
 var CanvasImage = function ( canvasElement ) {
 	this.canvasElement = canvasElement;
 	this.context = canvasElement.getContext("2d");
+	this.downloadImageData();
 }
 
 CanvasImage.prototype = {
 	downloadImageData: function() {
-		this.imageData = this.context.getImageData( 0, 0, this.canvas.width, this.canvas.height );
+		this.imageData = this.context.getImageData( 0, 0, this.canvasElement.width, this.canvasElement.height );
 	},
 
 	readPixel: function ( x, y ) {
